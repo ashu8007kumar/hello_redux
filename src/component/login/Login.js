@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import axios from 'axios';
-import {LOGIN_SUCCESS , LOGIN_FAILED , LOGIN_PENDING} from '../../state-managers/login-manager/reducer'
-import  Loading from '../loading/Loading'
+import { LOGIN_SUCCESS, LOGIN_FAILED, LOGIN_PENDING } from '../../state-managers/login-manager/reducer'
+import { UPLOAD_PENDING, UPLOAD_SUCCESS, UPLOAD_FAILED } from '../../state-managers/upload-manager/reducer'
+import Loading from '../loading/Loading'
 const mapStateToProps = state => { //set props here 
     return {
         ...state
@@ -10,25 +11,45 @@ const mapStateToProps = state => { //set props here
 }
 const mapDispatchToProps = disaptch => { // set action here
     return {
-        onSubmit: (data) => {
+        onSubmit: (data, file) => {
             disaptch({
                 type: LOGIN_PENDING,
                 data: data
             })
-            setTimeout(()=>{
-                axios.post(`http://demo0713757.mockable.io/login`)
-                .then(res => { 
-                    disaptch({
-                        type: LOGIN_SUCCESS,
-                        data: data
+            disaptch({
+                type: UPLOAD_PENDING
+            })
+            setTimeout(() => {
+                axios.post(`http://demo0713757.mockable.io/login`, { data })
+                    .then(res => {
+                        disaptch({
+                            type: LOGIN_SUCCESS,
+                            data: data
+                        })
+                        setTimeout(() => {
+                            const formData = new FormData();
+                            formData.append("file", file);  
+                            axios.post(`http://demo0713757.mockable.io/file`, formData, {
+                                headers: { "X-Requested-With": "XMLHttpRequest" },
+                            }).then(res => {
+                                disaptch({
+                                    type: UPLOAD_SUCCESS,
+                                    data: data
+                                })
+                            }).catch(res => {
+                                disaptch({
+                                    type: UPLOAD_FAILED,
+                                    data: data
+                                })
+                            })
+                        }, 30000)
+                    }).catch(res => {
+                        disaptch({
+                            type: LOGIN_FAILED,
+                            data: data
+                        })
                     })
-                }).catch(res => { 
-                    disaptch({
-                        type: LOGIN_FAILED,
-                        data: data
-                    })
-                })
-            },10000) 
+            }, 10000)
         }
     };
 }
@@ -47,7 +68,7 @@ class Login extends Component {
         onSubmit({
             username: this.state.username,
             password: this.state.password
-        });
+        }, this.state.file);
     }
     render() {
 
@@ -60,11 +81,11 @@ class Login extends Component {
                     onChange={(event) => this.setState({ password: event.target.value })} />
                 <br />
                 <input type="file" placeholder="Enter your password"
-                    onChange={(event) => this.setState({file:event.target.files[0]})} />
+                    onChange={(event) => this.setState({ file: event.target.files[0] })} />
                 <br />
-                
-                {this.props.login.loading ? null : <input type="button" value="Submit" onClick={this.handleClick} />}
-                <Loading loading={this.props.login.loading || this.props.file.loading }></Loading>
+
+                {this.props.login.loading || this.props.file.loading ? null : <input type="button" value="Submit" onClick={this.handleClick} />}
+                <Loading loading={this.props.login.loading || this.props.file.loading}></Loading>
                 {this.props.login.loading && <div>Login in process</div>}
                 {this.props.login.success && <div>Login is successful</div>}
                 {this.props.login.error && <div>Login is error</div>}

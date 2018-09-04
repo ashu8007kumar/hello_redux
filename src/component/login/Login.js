@@ -42,14 +42,14 @@ const mapDispatchToProps = disaptch => { // set action here
                                     data: data
                                 })
                             })
-                        }, 30000)
+                        }, 2000)
                     }).catch(res => {
                         disaptch({
                             type: LOGIN_FAILED,
                             data: data
                         })
                     })
-            }, 10000)
+            }, 3000)
         }
     };
 }
